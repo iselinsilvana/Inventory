@@ -50,24 +50,28 @@
     </LinearLayout>
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="300dp">
         <TextView
             style="@style/CategoryStyle"
             android:text="Last opp eit bilete"/>
-        <LinearLayout
+        <RelativeLayout
             android:layout_height="match_parent"
             android:layout_width="0dp"
             android:layout_weight="2"
             android:gravity="center_horizontal"
             android:orientation="vertical">
             <ImageView
-                android:layout_width="0dp"
-                android:layout_height="0dp" />
-            <Button
+                android:id="@+id/iv_item"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Last opp"/>
-        </LinearLayout>
+                tools:src="@mipmap/ic_launcher"/>
+            <Button
+                android:id="@+id/btn_photo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Last opp"
+                android:layout_below="@id/iv_item"/>
+        </RelativeLayout>
     </LinearLayout>
 
 </LinearLayout>

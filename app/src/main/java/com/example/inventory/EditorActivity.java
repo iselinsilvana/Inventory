@@ -1,14 +1,21 @@
 package com.example.inventory;
 
+import android.Manifest;
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.LoaderManager;
 import android.content.ContentValues;
 import android.content.CursorLoader;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.Loader;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.NavUtils;
 import android.support.v7.app.AppCompatActivity;
@@ -20,6 +27,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -33,7 +41,11 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
     private EditText mQuantityTextView;
     private Button mMinusButton;
     private Button mPlusButton;
+    private Button mPhotoButton;
+    private ImageView mImageView;
 
+    private static final int MY_CAMERA_PERMISSION_CODE = 100;
+    private static final int CAMERA_REQUEST = 1888;
     private static final int INVENTORY_LOADER = 0;
     public static final String LOG_TAG = EditorActivity.class.getSimpleName();
     private Uri mCurrentItemUri;
@@ -57,11 +69,11 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
 
        //gjere dette i onLoadFinished?
         if (mCurrentItemUri == null) {
-            setTitle("Legg til nytt produkt");
+            setTitle(R.string.title_new_item);
             invalidateOptionsMenu();
         }
         else {
-            setTitle("Rediger produkt");
+            setTitle(R.string.title_edit_item);
             getLoaderManager().initLoader(INVENTORY_LOADER, null, this);
         }
 
@@ -69,6 +81,8 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
         mQuantityTextView = (EditText) findViewById(R.id.editor_tv_quantity);
         mMinusButton = (Button) findViewById(R.id.btn_minus);
         mPlusButton = (Button) findViewById(R.id.btn_plus);
+        this.mImageView = (ImageView) findViewById(R.id.iv_item);
+        mPhotoButton = (Button) findViewById(R.id.btn_photo);
 
         mMinusButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -81,6 +95,18 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
             @Override
             public void onClick(View v) {
                 plusOne();
+            }
+        });
+
+        mPhotoButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED ) {
+                    requestPermissions(new String[] {Manifest.permission.CAMERA}, MY_CAMERA_PERMISSION_CODE);
+                } else {
+                    Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                    startActivityForResult(cameraIntent, CAMERA_REQUEST);
+                }
             }
         });
 
@@ -104,6 +130,35 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
         mQuantityTextView.setText(Integer.toString(quantityInt));
     }
 
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == MY_CAMERA_PERMISSION_CODE) {
+            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                Toast.makeText(this, "camera permission granted", Toast.LENGTH_LONG).show();
+                Intent cameraIntent = new
+                        Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
+                startActivityForResult(cameraIntent, CAMERA_REQUEST);
+            } else {
+                Toast.makeText(this, "camera permission denied", Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == CAMERA_REQUEST && resultCode == Activity.RESULT_OK) {
+            Bitmap photo = (Bitmap) data.getExtras().get("data");
+            mImageView.setImageBitmap(photo);
+            // ImageView imageListview = (ImageView) findViewById(R.id.image_list);
+            // imageListview.setImageBitmap(photo);
+
+            Intent intent = new Intent();
+            intent.setClass(EditorActivity.this, CatalogActivity.class);
+            intent.putExtra("Bitmap", photo);
+            startActivity(intent);
+        }
+    }
+
+
     private void saveItem() {
         String itemString = mItemNameEditText.getText().toString().trim();
         String quantityString = mQuantityTextView.getText().toString().trim();
@@ -116,7 +171,7 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
         //and check if all the fields in the editor are blank
         if (TextUtils.isEmpty(itemString)) {
             // Since there were no modified fields, we can return early and do not create a new item.
-            Toast.makeText(this, "Kan ikkje lagre ei vare uten namn", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, getString(R.string.error_saving_nameless_item_toast), Toast.LENGTH_SHORT).show();
         } else {
             // Create a ContentValues object where column names are the keys,
             // and item attributes from the editor are the values.
@@ -129,17 +184,17 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
                 // Show a toast message depending on whether or not the insertion was successful
                 if (newUri == null) {
                     // If the row ID is -1, then there was an error with insertion.
-                    Toast.makeText(this, "Det oppsto ein feil under lagring", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, getString(R.string.error_saving_item), Toast.LENGTH_SHORT).show();
                 } else {
                     // Otherwise, the insertion was successful and we can display a toast with the row ID.
-                    Toast.makeText(this, "Vara er lagra", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, getString(R.string.save_item_success), Toast.LENGTH_SHORT).show();
                 }
             } else {
                 int rowsAffected = getContentResolver().update(mCurrentItemUri, values, null, null);
                 if (rowsAffected == 0) {
-                    Toast.makeText(this, "Det oppsto ein deil under lagring", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, getString(R.string.error_saving_item), Toast.LENGTH_SHORT).show();
                 } else {
-                    Toast.makeText(this, "Vara er lagra", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, getString(R.string.save_item_success), Toast.LENGTH_SHORT).show();
                 }
             }
             finish();
@@ -148,8 +203,8 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
 
     private void showDeleteConfirmationDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setMessage("Er du sikker på at du vil slette denne vara?");
-        builder.setPositiveButton("Slett", new DialogInterface.OnClickListener() {
+        builder.setMessage(R.string.item_delete_confirmation);
+        builder.setPositiveButton(R.string.action_delete_entry, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int id) {
                 deleteItem();
@@ -207,9 +262,9 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
 
     private void showUnsavedChangesDialog(DialogInterface.OnClickListener discardButtonClickListener) {
         AlertDialog.Builder builder= new AlertDialog.Builder(this);
-        builder.setMessage("Vil du forkaste endringar og slutte å redigere vara?");
-        builder.setPositiveButton("Forkast", discardButtonClickListener);
-        builder.setNegativeButton("Fortsette å redigere", new DialogInterface.OnClickListener() {
+        builder.setMessage(R.string.discard_changes);
+        builder.setPositiveButton(R.string.discard_changes_positive, discardButtonClickListener);
+        builder.setNegativeButton(R.string.discard_changes_negative, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 if (dialog != null) {

@@ -20,6 +20,6 @@
         android:layout_alignParentRight="true"
         android:layout_margin="16dp"
         app:backgroundTint="@color/editorColorPrimary"
-        android:src="@drawable/baseline_add_black_48"/>
+        android:src="@drawable/round_add_white_18"/>
 
 </RelativeLayout>

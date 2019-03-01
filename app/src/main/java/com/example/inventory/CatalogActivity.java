@@ -71,29 +71,10 @@ public class CatalogActivity extends AppCompatActivity implements LoaderManager.
                 startActivity(intent);
             }
         });
-
-        usedOneButton = (Button) findViewById(R.id.btn_used_one);
-        usedOneButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                usedOne(int position, long id);
-            }
-        });
     }
 
     @Override
     protected void onStart() { super.onStart(); }
-
-    private void usedOne(int position, long id) {
-        Uri currentUri = ContentUris.withAppendedId(InventoryEntry.CONTENT_URI, id);
-
-        int quantityColumnIndex = cursor.getColumnIndex(InventoryEntry.COLUMN_INVENTORY_QUANTITY);
-        int quantity = cursor.getInt(quantityColumnIndex);
-
-        ContentValues value = new ContentValues();
-        value.put(InventoryEntry.COLUMN_INVENTORY_QUANTITY, newQuantity);
-        int rowsAffected = getContentResolver().update(currentUri, value, null, null);
-    }
 
     private void insertItem() {
         ContentValues values = new ContentValues(); // column names are the keys, the attributes (like paprika) are the values.
@@ -124,14 +105,14 @@ public class CatalogActivity extends AppCompatActivity implements LoaderManager.
 
     private void showDeleteConfirmationDialog() {
         AlertDialog.Builder builder =new AlertDialog.Builder(this);
-        builder.setMessage("Er du sikker på at du vil slette alt i lista?");
-        builder.setPositiveButton("Slett alt", new DialogInterface.OnClickListener() {
+        builder.setMessage(R.string.delete_all_warning);
+        builder.setPositiveButton(R.string.action_delete_all_entries, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 deleteWholeInventory();
             }
         });
-        builder.setNegativeButton("Gå tilbake", new DialogInterface.OnClickListener() {
+        builder.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 if (dialog != null) { dialog.dismiss();}
@@ -144,9 +125,9 @@ public class CatalogActivity extends AppCompatActivity implements LoaderManager.
     private void deleteWholeInventory() {
         int rowsDeleted = getContentResolver().delete(InventoryEntry.CONTENT_URI, null, null);
         if (rowsDeleted == 0) {
-            Toast.makeText(this, "Det skjedde ein feil. Ingenting blei sletta", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, getString(R.string.delete_all_error_toast), Toast.LENGTH_SHORT).show();
         } else {
-            Toast.makeText(this, "Lista er sletta", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, getString(R.string.delete_all_success_toast), Toast.LENGTH_SHORT).show();
         }
         Log.v(LOG_TAG, rowsDeleted + " rows deleted from database");
     }

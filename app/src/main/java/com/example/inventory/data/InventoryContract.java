@@ -21,6 +21,7 @@ public final class InventoryContract {
         public static final String _ID = BaseColumns._ID;
         public static final String COLUMN_INVENTORY_ITEM = "item";
         public static final String COLUMN_INVENTORY_QUANTITY = "quantity";
+        public static final String COLUMN_INVENTORY_PHOTO = "photo";
         public static final String INVENTORY_LIST_TYPE =
                 CURSOR_DIR_BASE_TYPE + "/" + AUTHORITY + "/" + PATH_INVENTORY;
         public static final String INVENTORY_ITEM_TYPE =
