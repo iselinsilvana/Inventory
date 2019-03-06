@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Inventory</string>
+    <string name="app_name">Matskap</string>
+    <string name="activity_name_catalog">Oversikt</string>
     <string name="action_insert_dummy_data">Sett inn testdata</string>
     <string name="action_delete_all_entries">Slett alt</string>
     <string name="action_delete_entry">Slett</string>
@@ -18,5 +19,5 @@
     <string name="error_saving_item">Det oppsto ein feil under lagring</string>
     <string name="save_item_success">Produktet blei lagra</string>
     <string name="item_delete_confirmation">Er du sikker på at du vil slette dette produktet?</string>
-
+    <string name="pick_image_intent_text">Velg eit bilete</string>
 </resources>

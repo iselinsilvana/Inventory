@@ -12,7 +12,9 @@ import android.content.Loader;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
@@ -35,21 +37,26 @@ import com.example.inventory.data.InventoryContract.InventoryEntry;
 
 import com.example.inventory.data.InventoryContract;
 
+import java.io.ByteArrayOutputStream;
+
 public class EditorActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor> {
 
     private EditText mItemNameEditText;
     private EditText mQuantityTextView;
     private Button mMinusButton;
     private Button mPlusButton;
+    private Button mGalleryButton;
     private Button mPhotoButton;
     private ImageView mImageView;
 
     private static final int MY_CAMERA_PERMISSION_CODE = 100;
     private static final int CAMERA_REQUEST = 1888;
+    private static final int PICK_IMAGE_ID = 234; // the number doesn't matter
     private static final int INVENTORY_LOADER = 0;
     public static final String LOG_TAG = EditorActivity.class.getSimpleName();
     private Uri mCurrentItemUri;
     private boolean mItemHasChanged;
+    private Bitmap image = null;
 
     private View.OnTouchListener mTouchListener = new View.OnTouchListener() {
         @Override
@@ -82,6 +89,7 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
         mMinusButton = (Button) findViewById(R.id.btn_minus);
         mPlusButton = (Button) findViewById(R.id.btn_plus);
         this.mImageView = (ImageView) findViewById(R.id.iv_item);
+        mGalleryButton = (Button) findViewById(R.id.btn_gallery);
         mPhotoButton = (Button) findViewById(R.id.btn_photo);
 
         mMinusButton.setOnClickListener(new View.OnClickListener() {
@@ -98,6 +106,16 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
             }
         });
 
+        mGalleryButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                //hent bilde frå galleri
+                Intent photoGalleryIntent = new Intent(Intent.ACTION_PICK);
+                photoGalleryIntent.setType("image/*");
+                startActivityForResult(photoGalleryIntent, PICK_IMAGE_ID);
+            }
+        });
+
         mPhotoButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -107,6 +125,7 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
                     Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
                     startActivityForResult(cameraIntent, CAMERA_REQUEST);
                 }
+
             }
         });
 
@@ -144,18 +163,56 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
             }
         }
     }
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == CAMERA_REQUEST && resultCode == Activity.RESULT_OK) {
-            Bitmap photo = (Bitmap) data.getExtras().get("data");
-            mImageView.setImageBitmap(photo);
-            // ImageView imageListview = (ImageView) findViewById(R.id.image_list);
-            // imageListview.setImageBitmap(photo);
 
-            Intent intent = new Intent();
-            intent.setClass(EditorActivity.this, CatalogActivity.class);
-            intent.putExtra("Bitmap", photo);
-            startActivity(intent);
+
+    public void onPickImage(View view) {
+        Intent chooseImageIntent = ImagePicker.getPickImageIntent(this);
+        startActivityForResult(chooseImageIntent, PICK_IMAGE_ID);
+    }
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+       if (resultCode == RESULT_OK) {
+           switch (requestCode) {
+               case PICK_IMAGE_ID:
+                   Bitmap bitmap = ImagePicker.getImageFromResult(this, resultCode, data);
+                   image = bitmap;
+                   mImageView.setImageBitmap(image);
+                   break;
+               case CAMERA_REQUEST:
+                   image = (Bitmap) data.getExtras().get("data");
+                   mImageView.setImageBitmap(image);
+               default:
+                   super.onActivityResult(requestCode, resultCode, data);
+                   break;
+           }
+       }
+    }
+
+/*
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+       // if (requestCode == CAMERA_REQUEST && resultCode == Activity.RESULT_OK)
+        if (resultCode == Activity.RESULT_OK) {
+            image = (Bitmap) data.getExtras().get("data");
+            mImageView.setImageBitmap(image);
         }
+    }
+    */
+
+
+    // convert image between bitmap and byte array
+    //from bitmap to byte[], to database
+    public static byte[] getBytes(Bitmap bitmap) {
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.PNG, 0, stream);
+        Log.v(LOG_TAG, "TEST: the image is bein converted to database.");
+        return stream.toByteArray();
+    }
+    //from byte[] to bitmap, from database
+    public static Bitmap getBitmap(byte[] byteImage) {
+        if (byteImage == null) {
+            Log.v(LOG_TAG, "TEST: the image in the database is a null array.");
+        }
+        return BitmapFactory.decodeByteArray(byteImage, 0, byteImage.length);
     }
 
 
@@ -178,6 +235,11 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
             ContentValues values = new ContentValues();
             values.put(InventoryEntry.COLUMN_INVENTORY_ITEM, itemString);
             values.put(InventoryEntry.COLUMN_INVENTORY_QUANTITY, quantity);
+            //checking if the image is empty or not
+            if (image != null) {
+                byte[] bytesImage = getBytes(image);
+                values.put(InventoryEntry.COLUMN_INVENTORY_IMAGE, bytesImage);
+            }
 
             if (mCurrentItemUri == null) {
                 Uri newUri = getContentResolver().insert(InventoryEntry.CONTENT_URI, values);
@@ -263,8 +325,8 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
     private void showUnsavedChangesDialog(DialogInterface.OnClickListener discardButtonClickListener) {
         AlertDialog.Builder builder= new AlertDialog.Builder(this);
         builder.setMessage(R.string.discard_changes);
-        builder.setPositiveButton(R.string.discard_changes_positive, discardButtonClickListener);
-        builder.setNegativeButton(R.string.discard_changes_negative, new DialogInterface.OnClickListener() {
+        builder.setPositiveButton(R.string.discard_changes_negative, discardButtonClickListener);
+        builder.setNegativeButton(R.string.discard_changes_positive, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 if (dialog != null) {
@@ -314,7 +376,8 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
         String[] projection = {
                 InventoryEntry._ID,
                 InventoryEntry.COLUMN_INVENTORY_ITEM,
-                InventoryEntry.COLUMN_INVENTORY_QUANTITY
+                InventoryEntry.COLUMN_INVENTORY_QUANTITY,
+                InventoryEntry.COLUMN_INVENTORY_IMAGE
         };
         return new CursorLoader(this,
                 mCurrentItemUri,
@@ -332,12 +395,18 @@ public class EditorActivity extends AppCompatActivity implements LoaderManager.L
         if(cursor.moveToFirst()) {
             int itemColumnIndex = cursor.getColumnIndex(InventoryEntry.COLUMN_INVENTORY_ITEM);
             int quantityColumnIndex = cursor.getColumnIndex(InventoryEntry.COLUMN_INVENTORY_QUANTITY);
+            int imageColumnIndex = cursor.getColumnIndex(InventoryEntry.COLUMN_INVENTORY_IMAGE);
 
             String item = cursor.getString(itemColumnIndex);
             int quantity = cursor.getInt(quantityColumnIndex);
+            byte[] imageByte = cursor.getBlob(imageColumnIndex);
+            if ( imageByte != null) {
+                Log.v(LOG_TAG,"TEST: Retreiving image from database. length: " + imageByte.length);
+            image = getBitmap(imageByte); }
 
             mItemNameEditText.setText(item);
             mQuantityTextView.setText(Integer.toString(quantity));
+            mImageView.setImageBitmap(image);
         }
     }
 

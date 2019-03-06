@@ -36,7 +36,6 @@ public class CatalogActivity extends AppCompatActivity implements LoaderManager.
 
     private static final int INVENTORY_LOADER = 0;
     InventoryCursorAdapter mCursorAdapter;
-    Button usedOneButton;
     public static final String LOG_TAG = CatalogActivity.class.getSimpleName();
 
     @Override
@@ -104,7 +103,7 @@ public class CatalogActivity extends AppCompatActivity implements LoaderManager.
     }
 
     private void showDeleteConfirmationDialog() {
-        AlertDialog.Builder builder =new AlertDialog.Builder(this);
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setMessage(R.string.delete_all_warning);
         builder.setPositiveButton(R.string.action_delete_all_entries, new DialogInterface.OnClickListener() {
             @Override
@@ -138,7 +137,9 @@ public class CatalogActivity extends AppCompatActivity implements LoaderManager.
         String[] projection = {
                 InventoryEntry._ID,
                 InventoryEntry.COLUMN_INVENTORY_ITEM,
-                InventoryEntry.COLUMN_INVENTORY_QUANTITY };
+                InventoryEntry.COLUMN_INVENTORY_QUANTITY,
+                InventoryEntry.COLUMN_INVENTORY_IMAGE
+        };
 
         return new CursorLoader(this,
                 InventoryEntry.CONTENT_URI,
